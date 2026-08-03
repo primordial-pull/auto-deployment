@@ -21,14 +21,7 @@ jobs:
 
       # OIDC 기반 AWS 인증 (액세스 키 대신 Role ARN 사용)
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6.2.3
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
-
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
-
-      - name: Verify Login Success
-        run: echo "ECR Registry Subdomain -> ${{ steps.login-ecr.outputs.registry }}"
