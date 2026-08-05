@@ -19,16 +19,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Debug OIDC Token Sub Claim
-        run: |
-          TOKEN=$(curl -s -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=sts.amazonaws.com")
-          echo "=== Actual OIDC 'sub' claim ==="
-          echo "$TOKEN" | cut -d. -f2 | base64 -d 2>/dev/null | jq -r '.sub'
-          echo "================================"
-
       # OIDC 기반 AWS 인증 (액세스 키 대신 Role ARN 사용)
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v6.2.3
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
+
+      # ECR 로그인
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # 검증 결과 출력
+      - name: Verify Login Success
+        run: echo "ECR Registry Subdomain -> ${{ steps.login-ecr.outputs.registry }}"
