@@ -1,4 +1,4 @@
-name: Step 1 - AWS & ECR Auth Test
+name: Step 1 - Test & AWS/ECR Auth
 
 on:
   push:
@@ -13,7 +13,34 @@ permissions:
   contents: read
 
 jobs:
+  # 테스트가 통과해야만 이후 단계(인증/배포)로 진행
+  unit-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      # 락파일과 package.json이 어긋나면 여기서 실패
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run tests
+        run: pnpm test
+
   test-auth:
+    # unit-test 잡이 성공한 경우에만 실행
+    needs: unit-test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
