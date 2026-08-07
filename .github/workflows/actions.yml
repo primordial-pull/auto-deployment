@@ -1,11 +1,12 @@
-name: Step 1 - Test & AWS/ECR Auth
+name: Step 2 - Test, Build & Push to ECR
 
 on:
   push:
-    branches: [ main ]
+    branches: [ '**' ]
 
 env:
   AWS_REGION: ap-northeast-2
+  ECR_REPOSITORY: test/auto-deployment
 
 # OIDC 토큰 발급을 위해 permissions 설정 필요
 permissions:
@@ -38,8 +39,8 @@ jobs:
       - name: Run tests
         run: pnpm test
 
-  test-auth:
-    # unit-test 잡이 성공한 경우에만 실행
+  # ECR 로그인 자격 증명은 잡 경계를 넘지 않으므로 로그인과 push 가 같은 잡에 있어야 한다
+  build-and-push:
     needs: unit-test
     runs-on: ubuntu-latest
     steps:
@@ -53,11 +54,35 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      # ECR 로그인
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      # 검증 결과 출력
-      - name: Verify Login Success
-        run: echo "ECR Registry Subdomain -> ${{ steps.login-ecr.outputs.registry }}"
+      # 레이어 캐시를 GitHub Actions 캐시에 저장하려면 buildx 가 필요하다
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      # 브랜치명과 커밋 SHA 로 태그 목록을 만든다.
+      #   feat/x 커밋 e4f5g6h -> feat-x-e4f5g6h, feat-x
+      - name: Extract image metadata
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}
+          tags: |
+            type=sha,prefix={{branch}}-
+            type=ref,event=branch
+
+      # 무거운 작업(pnpm install, next build)이 전부 중간 스테이지에 있고 최종 runner 는
+      # 산출물만 복사하므로, mode=max 로 중간 스테이지까지 캐시해야 의미가 있다.
+      # provenance 를 끄지 않으면 ECR 에 태그 없는 unknown/unknown 아티팩트가 함께 생긴다.
+      - name: Build and push image to ECR
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: false
