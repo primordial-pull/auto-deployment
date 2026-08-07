@@ -6,8 +6,6 @@ describe('Home', () => {
   it('메인 헤딩을 렌더링한다', () => {
     render(<Home />);
 
-    expect(
-      screen.getByRole('heading', { name: /edit the page.tsx file/i }),
-    ).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /edit the page.tsx file/i })).toBeInTheDocument();
   });
 });

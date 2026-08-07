@@ -1,0 +1,28 @@
+# 빌드 컨텍스트에서 제외할 것들.
+# node_modules 와 .next 는 이미지 안에서 새로 만들므로 로컬 것을 보내면 안 된다.
+node_modules
+.next
+out
+build
+
+.git
+.github
+.vscode
+.idea
+
+coverage
+.DS_Store
+.env*
+*.log
+npm-debug.log*
+.pnpm-debug.log*
+
+README.md
+Dockerfile
+.dockerignore
+
+# 테스트는 CI 의 unit-test 잡에서 이미 검증한다. next build 에는 불필요.
+vitest.config.mts
+vitest.setup.ts
+**/*.test.ts
+**/*.test.tsx
